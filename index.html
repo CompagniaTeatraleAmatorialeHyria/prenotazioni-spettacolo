@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biglietteria Hyria</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+
+    <div class="container no-print">
+        <div class="header-logo">
+            <img src="https://via.placeholder.com/80?text=Hyria" alt="Logo Hyria">
+            <h1>Compagnia Teatrale Hyria</h1>
+        </div>
+        
+        <p class="instr">Inserisci il tuo nome per generare il biglietto digitale ufficiale.</p>
+
+        <div class="input-section">
+            <input type="text" id="nome" placeholder="Nome e Cognome (es. Mario Rossi)">
+            
+            <label for="evento">Seleziona lo Spettacolo:</label>
+            <select id="evento">
+                <option value="LA LETTERA DI MAMMA'" data-luogo="Teatro V. Sorrentino (Saviano)" data-data="26/04/2026" data-ora="18:00">La Lettera di Mamma' - 26 Aprile 2026</option>
+            </select>
+            
+            <button onclick="generaBiglietto()">GENERA BIGLIETTO</button>
+        </div>
+    </div>
+
+    <div id="ticket-area" style="display:none; text-align: center; margin-top: 20px;">
+        <div id="ticket" class="ticket-card">
+            <div class="ticket-header">BIGLIETTO DIGITALE</div>
+            <div class="ticket-body">
+                <h2 id="display-evento">NOME SPETTACOLO</h2>
+                <p class="invitato">Invitato: <strong id="display-nome">Nome Cognome</strong></p>
+                
+                <div class="info-spettacolo">
+                    <p>📍 <span id="display-luogo">Luogo</span></p>
+                    <p>📅 <span id="display-data">Data</span> alle <span id="display-ora">Ora</span></p>
+                </div>
+
+                <div id="qrcode-container">
+                    <div id="qrcode"></div>
+                </div>
+
+                <p class="univoco">Codice Biglietto: <span id="display-id">TKT-XXXXXX</span></p>
+            </div>
+            <div class="ticket-footer">Compagnia Teatrale Amatoriale Hyria</div>
+        </div>
+        
+        <div class="no-print download-section">
+            <p>👇 Clicca qui sotto per salvare il biglietto nella tua galleria 👇</p>
+            <button class="btn-save" onclick="scaricaBiglietto()">SALVA IN GALLERIA (PNG)</button>
+        </div>
+    </div>
+
+    <script>
+        // Nome della tua compagnia (fisso)
+        const NOME_COMPAGNIA = "Compagnia Teatrale Amatoriale Hyria";
+
+        function generaBiglietto() {
+            const nomeInput = document.getElementById('nome').value.trim();
+            const selectEvento = document.getElementById('evento');
+            const eventoTitol = selectEvento.value;
+            
+            // Recuperiamo i dati nascosti nelle opzioni della select
+            const optionScelta = selectEvento.options[selectEvento.selectedIndex];
+            const eventoLuogo = optionScelta.getAttribute('data-luogo');
+            const eventoData = optionScelta.getAttribute('data-data');
+            const eventoOra = optionScelta.getAttribute('data-ora');
+
+            if (nomeInput === "") {
+                alert("Per favore, inserisci il tuo Nome e Cognome.");
+                return;
+            }
+
+            const nomeFormattato = nomeInput.toUpperCase();
+
+            // 1. Generazione Codice Univoco (stile TKT-Timestamp-Random)
+            const rand = Math.floor(Math.random() * 900) + 100; // 3 cifre casuali
+            const ticketID = "HYR-" + Date.now().toString().slice(-6) + "-" + rand;
+            
+            // 2. Aggiorniamo l'interfaccia visiva del biglietto
+            document.getElementById('ticket-area').style.display = 'block';
+            document.getElementById('display-nome').innerText = nomeFormattato;
+            document.getElementById('display-evento').innerText = eventoTitol;
+            document.getElementById('display-luogo').innerText = eventoLuogo;
+            document.getElementById('display-data').innerText = eventoData;
+            document.getElementById('display-ora').innerText = eventoOra;
+            document.getElementById('display-id').innerText = ticketID;
+
+            // 3. CREAZIONE DEL TESTO PER IL QR CODE (Esattamente come richiesto)
+            // Usiamo \n per andare a capo nel testo scansionato
+            const testoQR = 
+`${NOME_COMPAGNIA}
+----------------------------
+SPETTACOLO: ${eventoTitol}
+LUOGO: ${eventoLuogo}
+DATA/ORA: ${eventoData} - ${eventoOra}
+INVITATO: ${nomeFormattato}
+----------------------------
+CODICE BIGLIETTO: ${ticketID}`;
+
+            // 4. Generiamo il QR Code
+            document.getElementById("qrcode").innerHTML = ""; // Puliamo il vecchio QR
+            new QRCode(document.getElementById("qrcode"), {
+                text: testoQR,
+                width: 220, // Leggermente più grande per contenere più testo
+                height: 220,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                // Livello di correzione alto (H) per garantire la lettura anche se parzialmente danneggiato
+                correctLevel : QRCode.CorrectLevel.H 
+            });
+
+            // Scorriamo automaticamente verso il biglietto generato
+            document.getElementById('ticket-area').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function scaricaBiglietto() {
+            const ticketDiv = document.getElementById('ticket');
+            const nomeFile = "Biglietto_Hyria_" + document.getElementById('display-id').innerText + ".png";
+
+            // Usiamo html2canvas per "fotografare" l'intero DIV del biglietto
+            html2canvas(ticketDiv, {
+                scale: 2, // Aumentiamo la qualità dell'immagine
+                backgroundColor: "#f4f4f4" // Assicuriamoci che lo sfondo sia pulito
+            }).then(canvas => {
+                // Convertiamo il canvas in un'immagine PNG e la scarichiamo
+                const link = document.createElement("a");
+                link.download = nomeFile;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>

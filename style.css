@@ -1,0 +1,185 @@
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f4f4;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    margin: 0;
+}
+
+.container {
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.header-logo img {
+    width: 70px;
+    height: auto;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-size: 22px;
+    color: #2c3e50;
+    margin: 0 0 15px 0;
+}
+
+.instr {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+.input-section {
+    text-align: left;
+}
+
+.input-section label {
+    font-weight: bold;
+    font-size: 14px;
+    color: #34495e;
+    display: block;
+    margin-top: 15px;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    box-sizing: border-box; /* Importante per padding */
+}
+
+button {
+    width: 100%;
+    padding: 15px;
+    background-color: #2c3e50;
+    color: white;
+    font-weight: bold;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background-color: #34495e;
+}
+
+/* --- STILE BIGLIETTO (CARD) --- */
+.ticket-card {
+    background: white;
+    border: 2px solid #222;
+    border-radius: 15px;
+    overflow: hidden;
+    max-width: 400px;
+    margin: 0 auto;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    text-align: center;
+}
+
+.ticket-header {
+    background: #222;
+    color: white;
+    padding: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 14px;
+}
+
+.ticket-body {
+    padding: 25px 20px;
+}
+
+.ticket-body h2 {
+    margin: 0 0 10px 0;
+    font-size: 26px;
+    color: #000;
+    text-transform: uppercase;
+}
+
+.invitato {
+    font-size: 16px;
+    color: #555;
+    margin: 0 0 20px 0;
+}
+
+.invitato strong {
+    color: #000;
+    font-size: 18px;
+}
+
+.info-spettacolo {
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #eee;
+}
+
+.info-spettacolo p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #333;
+}
+
+#qrcode-container {
+    display: flex;
+    justify-content: center;
+    margin: 25px 0;
+}
+
+/* Stile forzato per il QR generato dalla libreria */
+#qrcode img {
+    border: 10px solid white; /* Bordo bianco attorno al QR */
+}
+
+.univoco {
+    font-size: 12px;
+    color: #7f8c8d;
+    margin: 15px 0 0 0;
+    font-family: monospace;
+}
+
+.ticket-footer {
+    background: #f4f4f4;
+    padding: 10px;
+    font-size: 12px;
+    color: #666;
+    border-top: 1px solid #eee;
+}
+
+/* Sezione Download */
+.download-section {
+    max-width: 400px;
+    margin: 20px auto;
+}
+
+.download-section p {
+    font-size: 14px;
+    color: #7f8c8d;
+}
+
+.btn-save {
+    background-color: #27ae60;
+    margin-top: 10px;
+}
+
+.btn-save:hover {
+    background-color: #2ecc71;
+}
+
+/* Rimuove elementi durante il salvataggio immagine (se necessario) */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+}
