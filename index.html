@@ -32,12 +32,13 @@
                 <option value="LA LETTERA DI MAMMA'" data-luogo="Teatro V. Sorrentino (Saviano)" data-data="26/04/2026" data-ora="18:00">La Lettera di Mamma' - 26 Aprile 2026</option>
             </select>
             
-            <button onclick="generaBiglietto()">GENERA BIGLIETTO PDF</button>
+            <button id="btn-genera" onclick="generaBiglietto()">GENERA BIGLIETTO PDF</button>
         </div>
     </div>
 
     <div id="ticket-area" style="display:none; text-align: center; margin-top: 20px;">
-        <div id="ticket" class="ticket-card">
+        <!-- Il biglietto deve essere fuori da altri contenitori flex durante lo scatto per evitare tagli -->
+        <div id="ticket" class="ticket-card" style="margin-left: auto; margin-right: auto;">
             <div class="ticket-header">BIGLIETTO DIGITALE</div>
             <div class="ticket-body">
                 <h2 id="display-evento">NOME SPETTACOLO</h2>
@@ -75,12 +76,17 @@
         function generaBiglietto() {
             const nomeInput = document.getElementById('nome').value.trim();
             const telInput = document.getElementById('tel').value.trim();
+            const btn = document.getElementById('btn-genera');
             const selectEvento = document.getElementById('evento');
             
             if (nomeInput === "" || telInput.length < 4) {
                 alert("Per favore, inserisci Nome, Cognome e le ultime 4 cifre del telefono.");
                 return;
             }
+
+            // UI Feedback
+            btn.disabled = true;
+            btn.innerText = "Invio in corso...";
 
             const optionScelta = selectEvento.options[selectEvento.selectedIndex];
             const eventoTitol = selectEvento.value;
@@ -91,6 +97,31 @@
             const nomeFormattato = nomeInput.toUpperCase();
             const ticketID = "HYR-" + Date.now().toString().slice(-6) + "-" + telInput;
             
+            // --- INVIO DATI A GOOGLE SHEETS ---
+            const scriptURL = 'INCOLLA_QUI_IL_TUO_URL_DI_APPS_SCRIPT'; 
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors', 
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome: nomeFormattato,
+                    telefono: telInput,
+                    spettacolo: eventoTitol,
+                    id: ticketID
+                })
+            }).then(() => {
+                console.log("Dati salvati su Google Sheets");
+                btn.disabled = false;
+                btn.innerText = "GENERA BIGLIETTO PDF";
+            }).catch(error => {
+                console.error('Errore invio:', error);
+                btn.disabled = false;
+                btn.innerText = "GENERA BIGLIETTO PDF";
+            });
+
+            // Popolamento Biglietto
             document.getElementById('ticket-area').style.display = 'block';
             document.getElementById('display-nome').innerText = nomeFormattato;
             document.getElementById('display-tel').innerText = "***" + telInput;
@@ -100,68 +131,50 @@
             document.getElementById('display-ora').innerText = eventoOra;
             document.getElementById('display-id').innerText = ticketID;
 
-            const testoQR = 
-`${NOME_COMPAGNIA}
-----------------------------
-SPETTACOLO: ${eventoTitol}
-LUOGO: ${eventoLuogo}
-DATA/ORA: ${eventoData} - ${eventoOra}
-INVITATO: ${nomeFormattato}
-TEL (ID): ${telInput}
-----------------------------
-CODICE: ${ticketID}`;
-
+            const testoQR = `${NOME_COMPAGNIA}\n---\nEVENTO: ${eventoTitol}\nLUOGO: ${eventoLuogo}\nDATA/ORA: ${eventoData} - ${eventoOra}\nINVITATO: ${nomeFormattato}\nTEL: ${telInput}\nID BIGLIETTO: ${ticketID}`;
+            
             document.getElementById("qrcode").innerHTML = "";
-            new QRCode(document.getElementById("qrcode"), {
-                text: testoQR,
-                width: 200,
-                height: 200,
-                correctLevel : QRCode.CorrectLevel.H 
+            new QRCode(document.getElementById("qrcode"), { 
+                text: testoQR, 
+                width: 180, 
+                height: 180,
+                correctLevel: QRCode.CorrectLevel.M
             });
 
-            document.getElementById('ticket-area').scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                document.getElementById('ticket-area').scrollIntoView({ behavior: 'smooth' });
+            }, 300);
         }
 
         function scaricaPDF() {
             const ticketDiv = document.getElementById('ticket');
             const idBiglietto = document.getElementById('display-id').innerText;
 
+            // html2canvas funziona meglio se forziamo le dimensioni reali
             html2canvas(ticketDiv, { 
-                scale: 2,
+                scale: 3, // Qualità molto alta
                 useCORS: true,
-                logging: false,
                 backgroundColor: "#ffffff",
-                allowTaint: true,
-                width: ticketDiv.offsetWidth,
-                height: ticketDiv.offsetHeight
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Assicuriamoci che l'elemento clonato sia visibile
+                    clonedDoc.getElementById('ticket').style.display = 'block';
+                }
             }).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 
                 const pdfWidth = pdf.internal.pageSize.getWidth();
                 const pdfHeight = pdf.internal.pageSize.getHeight();
-                const imgProps = pdf.getImageProperties(imgData);
                 
-                // Calcola larghezza con margini (10mm su ogni lato)
-                const maxWidth = pdfWidth - 10;
-                const imgWidth = maxWidth;
-                const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+                // Rapporto proporzioni
+                const imgWidth = pdfWidth - 20; // 10mm margine per lato
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
                 
-                // Se immagine è troppo alta per la pagina, riduci la larghezza
-                let finalWidth = imgWidth;
-                let finalHeight = imgHeight;
-                
-                if (imgHeight > pdfHeight - 10) {
-                    const ratio = (pdfHeight - 10) / imgHeight;
-                    finalWidth = imgWidth * ratio;
-                    finalHeight = imgHeight * ratio;
-                }
-                
-                // Centra l'immagine orizzontalmente e posiziona al top
-                const xPos = (pdfWidth - finalWidth) / 2;
-                const yPos = 5;
-                
-                pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+                const xPos = (pdfWidth - imgWidth) / 2;
+                const yPos = 15;
+
+                pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
                 pdf.save(`Biglietto_Hyria_${idBiglietto}.pdf`);
             });
         }
