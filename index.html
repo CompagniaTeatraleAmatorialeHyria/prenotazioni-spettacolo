@@ -98,18 +98,17 @@
             const ticketID = "HYR-" + Date.now().toString().slice(-6) + "-" + telInput;
             
             // --- INVIO DATI A GOOGLE SHEETS ---
-            const scriptURL = 'INCOLLA_QUI_IL_TUO_URL_DI_APPS_SCRIPT'; 
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbwbqKSIGmJSh8_-zyI5bg8Tw7nbkiDPHWnA1SYkKKxDE6NoNxqFpzJ_9RWl95Xg0ujCTA/exec'; 
 
             fetch(scriptURL, {
                 method: 'POST',
                 mode: 'no-cors', 
-                cache: 'no-cache',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    nome: nomeFormattato,
-                    telefono: telInput,
-                    spettacolo: eventoTitol,
-                    id: ticketID
+                    nome: nomeFormattato,   // Va nella colonna B
+                    telefono: telInput,     // Va nella colonna C
+                    spettacolo: eventoTitol,// Va nella colonna D
+                    id: ticketID            // Va nella colonna E
                 })
             }).then(() => {
                 console.log("Dati salvati su Google Sheets");
@@ -150,33 +149,51 @@
             const ticketDiv = document.getElementById('ticket');
             const idBiglietto = document.getElementById('display-id').innerText;
 
-            // html2canvas funziona meglio se forziamo le dimensioni reali
-            html2canvas(ticketDiv, { 
-                scale: 3, // Qualità molto alta
-                useCORS: true,
-                backgroundColor: "#ffffff",
-                logging: false,
-                onclone: (clonedDoc) => {
-                    // Assicuriamoci che l'elemento clonato sia visibile
-                    clonedDoc.getElementById('ticket').style.display = 'block';
-                }
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                const pdfWidth = pdf.internal.pageSize.getWidth();
-                const pdfHeight = pdf.internal.pageSize.getHeight();
-                
-                // Rapporto proporzioni
-                const imgWidth = pdfWidth - 20; // 10mm margine per lato
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
-                const xPos = (pdfWidth - imgWidth) / 2;
-                const yPos = 15;
-
-                pdf.addImage(imgData, 'PNG', xPos, yPos, imgWidth, imgHeight);
-                pdf.save(`Biglietto_Hyria_${idBiglietto}.pdf`);
-            });
+            // Aspettiamo che il QR code sia completamente renderizzato
+            setTimeout(() => {
+                html2canvas(ticketDiv, { 
+                    scale: 3,
+                    useCORS: true,
+                    backgroundColor: "#ffffff",
+                    logging: false,
+                    allowTaint: true,
+                    width: ticketDiv.offsetWidth,
+                    height: ticketDiv.offsetHeight,
+                    scrollX: 0,
+                    scrollY: 0
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // Calcola le proporzioni mantenendo l'aspetto
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const imgRatio = imgProps.width / imgProps.height;
+                    
+                    // Margini di 15mm su ogni lato
+                    const margin = 15;
+                    const maxWidth = pdfWidth - (margin * 2);
+                    const maxHeight = pdfHeight - (margin * 2);
+                    
+                    let finalWidth = maxWidth;
+                    let finalHeight = finalWidth / imgRatio;
+                    
+                    // Se troppo alto, ridimensiona
+                    if (finalHeight > maxHeight) {
+                        finalHeight = maxHeight;
+                        finalWidth = finalHeight * imgRatio;
+                    }
+                    
+                    // Centra il biglietto nella pagina
+                    const xPos = (pdfWidth - finalWidth) / 2;
+                    const yPos = margin;
+                    
+                    pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+                    pdf.save(`Biglietto_Hyria_${idBiglietto}.pdf`);
+                });
+            }, 500); // Aspetta 500ms per il rendering completo
         }
     </script>
 </body>
